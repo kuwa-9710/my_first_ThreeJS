@@ -1,5 +1,6 @@
 import * as THREE from "./build/three.module.js";
 import { FlyControls } from "./jsm/controls/FlyControls.js";
+import { Lensflare, LensflareElement } from "./jsm/objects/Lensflare.js";
 
 // three.jsに必要な３つの要素
 let camera, scene, renderer;
@@ -52,8 +53,12 @@ function init() {
   }
 
   // 平行光源の指定
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.03);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
   scene.add(dirLight);
+
+  // レンズフレアの追加
+  const textureLoader = new THREE.TextureLoader();
+  const textureFlare = textureLoader.load("./image/LensFlare.png");
 
   // 光源の追加
   addLight(0.08, 0.3, 0.9, 0, 0, -1000);
@@ -62,18 +67,28 @@ function init() {
     const light = new THREE.PointLight(0xffffff, 1.5, 2000);
     light.color.setHSL(hue, saturation, lightness);
     light.position.set(x, y, z);
-
     scene.add(light);
+
+    //lensflareの設定
+    const lensflare = new Lensflare();
+    lensflare.addElement(
+      new LensflareElement(textureFlare, 700, 0, light.color)
+    );
+    scene.add(lensflare);
   }
 
   // renderer
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
   // bodyの中に追加（canvasを作ってからでもOK)
   document.body.appendChild(renderer.domElement);
 
   // マウス操作を行う
   controls = new FlyControls(camera, renderer.domElement);
+  controls.movementSpeed = 2500;
+  controls.rollSpeed = Math.PI / 20;
 
   animate();
   // レンダリング
@@ -81,7 +96,9 @@ function init() {
 }
 
 function animate() {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-    renderer.render(scene, camera);
+  const delta = clock.getDelta(); //　経過した時間を取得
+  controls.update(delta);
+  renderer.render(scene, camera);
 }
